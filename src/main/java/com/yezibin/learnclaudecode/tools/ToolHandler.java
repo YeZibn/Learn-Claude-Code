@@ -2,7 +2,14 @@ package com.yezibin.learnclaudecode.tools;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.yezibin.learnclaudecode.task.TaskManager;
 import com.yezibin.learnclaudecode.todo.TodoManager;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class ToolHandler {
 
@@ -18,6 +25,14 @@ public class ToolHandler {
             return runEditTool(input);
         } else if (toolName.equals("todo")) {
             return runTodoTool(input);
+        } else if (toolName.equals("task_create")) {
+            return runTaskCreateTool(input);
+        } else if (toolName.equals("task_update")) {
+            return runTaskUpdateTool(input);
+        } else if (toolName.equals("task_list")) {
+            return runTaskListTool(input);
+        } else if (toolName.equals("task_get")) {
+            return runTaskGetTool(input);
         }
         return "工具调用失败：未知工具";
     }
@@ -30,12 +45,12 @@ public class ToolHandler {
             Process process = Runtime.getRuntime().exec(command);
             
             // 读取命令输出
-            java.io.BufferedReader reader = new java.io.BufferedReader(
-                new java.io.InputStreamReader(process.getInputStream())
+            BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream())
             );
             
-            java.io.BufferedReader errorReader = new java.io.BufferedReader(
-                new java.io.InputStreamReader(process.getErrorStream())
+            BufferedReader errorReader = new BufferedReader(
+                new InputStreamReader(process.getErrorStream())
             );
             
             StringBuilder output = new StringBuilder();
@@ -74,7 +89,7 @@ public class ToolHandler {
             }
             
             // 读取文件内容
-            java.util.List<String> lines = java.nio.file.Files.readAllLines(safePath, java.nio.charset.StandardCharsets.UTF_8);
+            java.util.List<String> lines = Files.readAllLines(safePath, StandardCharsets.UTF_8);
             
             // 限制返回行数
             if (limit > 0 && limit < lines.size()) {
@@ -105,19 +120,19 @@ public class ToolHandler {
         String content = input.get("content").getAsString();
         try {
             // 安全路径检查
-            java.nio.file.Path safePath = safePath(filePath);
+            Path safePath = safePath(filePath);
             if (safePath == null) {
                 return "路径不安全，操作被拒绝";
             }
             
             // 确保目录存在
-            java.nio.file.Path parent = safePath.getParent();
-            if (parent != null && !java.nio.file.Files.exists(parent)) {
-                java.nio.file.Files.createDirectories(parent);
+            Path parent = safePath.getParent();
+            if (parent != null && !Files.exists(parent)) {
+                Files.createDirectories(parent);
             }
             
             // 写入文件
-            java.nio.file.Files.write(safePath, content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            Files.write(safePath, content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             
             return "文件写入成功";
         } catch (Exception e) {
@@ -132,19 +147,19 @@ public class ToolHandler {
         String newString = input.get("new_string").getAsString();
         try {
             // 安全路径检查
-            java.nio.file.Path safePath = safePath(filePath);
+            Path safePath = safePath(filePath);
             if (safePath == null) {
                 return "路径不安全，操作被拒绝";
             }
             
             // 读取文件内容
-            String content = new String(java.nio.file.Files.readAllBytes(safePath), java.nio.charset.StandardCharsets.UTF_8);
+            String content = new String(Files.readAllBytes(safePath), java.nio.charset.StandardCharsets.UTF_8);
             
             // 替换内容
             String newContent = content.replace(oldString, newString);
             
             // 写入文件
-            java.nio.file.Files.write(safePath, newContent.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            Files.write(safePath, newContent.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             
             return "文件编辑成功";
         } catch (Exception e) {
@@ -160,6 +175,65 @@ public class ToolHandler {
             return todoManager.update(items);
         } catch (Exception e) {
             return "管理待办事项时出错：" + e.getMessage();
+        }
+    }
+
+    // 执行task_create工具
+    private static String runTaskCreateTool(JsonObject input) {
+        String subject = input.get("subject").getAsString();
+        String description = input.has("description") ? input.get("description").getAsString() : "";
+        java.util.List<Integer> blockedBy = new java.util.ArrayList<>();
+        java.util.List<Integer> blocks = new java.util.ArrayList<>();
+        if (input.has("blockedBy")) {
+            JsonArray blockedByArray = input.get("blockedBy").getAsJsonArray();
+            for (int i = 0; i < blockedByArray.size(); i++) {
+                blockedBy.add(blockedByArray.get(i).getAsInt());
+            }
+        }
+        if (input.has("blocks")) {
+            JsonArray blocksArray = input.get("blocks").getAsJsonArray();
+            for (int i = 0; i < blocksArray.size(); i++) {
+                blocks.add(blocksArray.get(i).getAsInt());
+            }
+        }
+        try {
+            TaskManager taskManager = TaskManager.getInstance();
+            return taskManager.create(subject, description, blockedBy, blocks);
+        } catch (Exception e) {
+            return "创建任务时出错：" + e.getMessage();
+        }
+    }
+
+    // 执行task_update工具
+    private static String runTaskUpdateTool(JsonObject input) {
+        int taskId = input.get("task_id").getAsInt();
+        String status = input.has("status") ? input.get("status").getAsString() : null;
+        try {
+            TaskManager taskManager = TaskManager.getInstance();
+            return taskManager.update(taskId, status, null, null);
+        } catch (Exception e) {
+            return "更新任务时出错：" + e.getMessage();
+        }
+    }
+
+    // 执行task_list工具
+    private static String runTaskListTool(JsonObject input) {
+        try {
+            TaskManager taskManager = TaskManager.getInstance();
+            return taskManager.listAll();
+        } catch (Exception e) {
+            return "列出任务时出错：" + e.getMessage();
+        }
+    }
+
+    // 执行task_get工具
+    private static String runTaskGetTool(JsonObject input) {
+        int taskId = input.get("task_id").getAsInt();
+        try {
+            TaskManager taskManager = TaskManager.getInstance();
+            return taskManager.get(taskId);
+        } catch (Exception e) {
+            return "获取任务时出错：" + e.getMessage();
         }
     }
 

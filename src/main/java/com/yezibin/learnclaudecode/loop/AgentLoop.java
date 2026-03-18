@@ -22,7 +22,7 @@ public class AgentLoop {
     // 模型名称
     private static final String MODEL = "Pro/MiniMaxAI/MiniMax-M2.5";
     // 系统提示
-    private static final String SYSTEM = "你是一个智能助手，可以使用工具来完成任务。";
+    private static final String SYSTEM = "你是一个智能助手，可以使用工具来完成任务。针对于有依赖关系的任务，请注意完善参数中的依赖于此任务的任务ID列表与依赖的任务ID列表，并在每个任务完成后更新任务状态。";
     // 技能加载器
     private static final SkillLoader skillLoader = new SkillLoader();
     
@@ -38,6 +38,10 @@ public class AgentLoop {
         JsonObject editTool = gson.fromJson(ToolJson.getEditTool(), JsonObject.class);
         JsonObject todoTool = gson.fromJson(ToolJson.getTodoTool(), JsonObject.class);
         JsonObject skillTool = gson.fromJson(ToolJson.getSkillTool(), JsonObject.class);
+        JsonObject taskCreateTool = gson.fromJson(ToolJson.getTaskCreateTool(), JsonObject.class);
+        JsonObject taskUpdateTool = gson.fromJson(ToolJson.getTaskUpdateTool(), JsonObject.class);
+        JsonObject taskListTool = gson.fromJson(ToolJson.getTaskListTool(), JsonObject.class);
+        JsonObject taskGetTool = gson.fromJson(ToolJson.getTaskGetTool(), JsonObject.class);
         
         tools.add(bashTool);
         tools.add(readTool);
@@ -45,6 +49,10 @@ public class AgentLoop {
         tools.add(editTool);
         tools.add(todoTool);
         tools.add(skillTool);
+        tools.add(taskCreateTool);
+        tools.add(taskUpdateTool);
+        tools.add(taskListTool);
+        tools.add(taskGetTool);
         
         return tools;
     }
@@ -282,7 +290,7 @@ public class AgentLoop {
     // 测试方法
     public static void main(String[] args) throws IOException {
         AgentLoop agentLoop = new AgentLoop();
-        String result = agentLoop.agentLoop("请帮我查一下当前目录下的文件列表");
+        String result = agentLoop.agentLoop("你目前是在windows系统下，请帮我管理并完成以下任务：创建一个任务，该任务创建一个hello.txt文件。创建第二个任务，其目标是在第一个任务创建的文件中写入helloworld，这个任务需要在第一个任务完成后才能开始，因为其依赖于任务1。创建第三个任务，其目标创建一个world.txt文件，这个任务也需要在第一个任务完成后才能开始，但是可以和任务二并行。");
         System.out.println("结果：" + result);
     }
 }
