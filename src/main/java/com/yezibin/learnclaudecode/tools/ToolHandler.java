@@ -2,7 +2,11 @@ package com.yezibin.learnclaudecode.tools;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.yezibin.learnclaudecode.loop.SubAgent;
+import com.yezibin.learnclaudecode.skills.SkillLoader;
 import com.yezibin.learnclaudecode.task.TaskManager;
+import com.yezibin.learnclaudecode.task.BackgroundTaskManager;
+import com.yezibin.learnclaudecode.teammate.TeammateManager;
 import com.yezibin.learnclaudecode.todo.TodoManager;
 
 import java.io.BufferedReader;
@@ -15,26 +19,36 @@ public class ToolHandler {
 
     // 执行工具调用
     public static String runTool(String toolName, JsonObject input) {
-        if (toolName.equals("execute_bash")) {
-            return runBashTool(input);
-        } else if (toolName.equals("read")) {
-            return runReadTool(input);
-        } else if (toolName.equals("write")) {
-            return runWriteTool(input);
-        } else if (toolName.equals("edit")) {
-            return runEditTool(input);
-        } else if (toolName.equals("todo")) {
-            return runTodoTool(input);
-        } else if (toolName.equals("task_create")) {
-            return runTaskCreateTool(input);
-        } else if (toolName.equals("task_update")) {
-            return runTaskUpdateTool(input);
-        } else if (toolName.equals("task_list")) {
-            return runTaskListTool(input);
-        } else if (toolName.equals("task_get")) {
-            return runTaskGetTool(input);
+        switch (toolName) {
+            case "task":
+                return runTaskTool(input);
+            case "skill":
+                return runSkillTool(input);
+            case "team":
+                return runTeamTool(input);
+            case "execute_bash":
+                return runBashTool(input);
+            case "read":
+                return runReadTool(input);
+            case "write":
+                return runWriteTool(input);
+            case "edit":
+                return runEditTool(input);
+            case "todo":
+                return runTodoTool(input);
+            case "task_create":
+                return runTaskCreateTool(input);
+            case "task_update":
+                return runTaskUpdateTool(input);
+            case "task_list":
+                return runTaskListTool(input);
+            case "task_get":
+                return runTaskGetTool(input);
+            case "run_background_task":
+                return runBackgroundTaskTool(input);
+            default:
+                return "工具调用失败：未知工具";
         }
-        return "工具调用失败：未知工具";
     }
 
     // 执行bash工具
@@ -169,6 +183,9 @@ public class ToolHandler {
 
     // 执行todo工具
     private static String runTodoTool(JsonObject input) {
+        if (!input.has("items")) {
+            return "错误：缺少items参数";
+        }
         JsonArray items = input.get("items").getAsJsonArray();
         try {
             TodoManager todoManager = TodoManager.getInstance();
@@ -234,6 +251,98 @@ public class ToolHandler {
             return taskManager.get(taskId);
         } catch (Exception e) {
             return "获取任务时出错：" + e.getMessage();
+        }
+    }
+    
+    // 执行后台任务工具
+    private static String runBackgroundTaskTool(JsonObject input) {
+        String command = input.get("command").getAsString();
+        try {
+            BackgroundTaskManager taskManager = BackgroundTaskManager.getInstance();
+            String taskId = taskManager.run(command);
+            return "后台任务已启动，任务ID：" + taskId;
+        } catch (Exception e) {
+            return "启动后台任务时出错：" + e.getMessage();
+        }
+    }
+    
+    // 执行task工具
+    private static String runTaskTool(JsonObject input) {
+        String prompt = input.get("prompt").getAsString();
+        try {
+            return SubAgent.run(prompt);
+        } catch (Exception e) {
+            return "执行子智能体时出错：" + e.getMessage();
+        }
+    }
+    
+    // 执行skill工具
+    private static String runSkillTool(JsonObject input) {
+        String name = input.get("name").getAsString();
+        SkillLoader skillLoader = new SkillLoader();
+        if (skillLoader.hasSkill(name)) {
+            return skillLoader.getContent(name);
+        } else {
+            return "错误：未知技能 '" + name + "'。可用技能：\n" + skillLoader.getDescriptions();
+        }
+    }
+    
+    // 执行团队管理工具
+    private static String runTeamTool(JsonObject input) {
+        if (!input.has("action")) {
+            return "错误：缺少action参数";
+        }
+        String action = input.get("action").getAsString();
+        try {
+            // 初始化团队管理器
+            TeammateManager teamManager = new TeammateManager("./team");
+            
+            switch (action) {
+                case "spawn":
+                    if (!input.has("name")) {
+                        return "错误：spawn操作缺少name参数";
+                    }
+                    if (!input.has("instructions")) {
+                        return "错误：spawn操作缺少instructions参数";
+                    }
+                    String name = input.get("name").getAsString();
+                    String instructions = input.get("instructions").getAsString();
+                    teamManager.spawn(name, instructions);
+                    return "已创建智能体成员：" + name;
+                case "send":
+                    if (!input.has("sender")) {
+                        return "错误：send操作缺少sender参数";
+                    }
+                    if (!input.has("receiver")) {
+                        return "错误：send操作缺少receiver参数";
+                    }
+                    if (!input.has("content")) {
+                        return "错误：send操作缺少content参数";
+                    }
+                    String sender = input.get("sender").getAsString();
+                    String receiver = input.get("receiver").getAsString();
+                    String content = input.get("content").getAsString();
+                    teamManager.sendMessage(sender, receiver, content);
+                    return "已发送消息给：" + receiver;
+                case "broadcast":
+                    if (!input.has("sender")) {
+                        return "错误：broadcast操作缺少sender参数";
+                    }
+                    if (!input.has("content")) {
+                        return "错误：broadcast操作缺少content参数";
+                    }
+                    sender = input.get("sender").getAsString();
+                    String broadcastContent = input.get("content").getAsString();
+                    teamManager.broadcastMessage(sender, broadcastContent);
+                    return "已广播消息";
+                case "list":
+                    java.util.List<String> members = teamManager.listMembers();
+                    return "团队成员列表：\n" + String.join("\n", members);
+                default:
+                    return "未知操作：" + action;
+            }
+        } catch (Exception e) {
+            return "执行团队管理操作时出错：" + e.getMessage();
         }
     }
 

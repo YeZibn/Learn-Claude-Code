@@ -27,6 +27,7 @@ public class TodoManager {
 
         for (int i = 0; i < itemsArray.size(); i++) {
             JsonObject item = itemsArray.get(i).getAsJsonObject();
+            
             String status = item.has("status") ? item.get("status").getAsString() : "pending";
 
             if (status.equals("in_progress")) {

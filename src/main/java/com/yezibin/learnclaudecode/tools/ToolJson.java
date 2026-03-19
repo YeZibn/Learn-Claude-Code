@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * 系统工具 JSON 定义类
- * 包含 bash、文件操作、待办、任务管理等工具的定义
+ * 包含 bash、文件操作、待办、任务管理、团队管理、后台任务等工具的定义
  */
 public class ToolJson {
 
@@ -122,7 +122,11 @@ public class ToolJson {
                 "\"items\":{" +
                 "\"type\":\"object\"," +
                 "\"properties\":{" +
-                "\"content\":{" +
+                "\"id\":{" +
+                "\"type\":\"string\"," +
+                "\"description\":\"待办事项唯一标识，例如：task-1、todo-2\"" +
+                "}," +
+                "\"text\":{" +
                 "\"type\":\"string\"," +
                 "\"description\":\"待办事项内容，例如：完成项目文档、测试接口\"" +
                 "}," +
@@ -132,7 +136,7 @@ public class ToolJson {
                 "\"description\":\"待办事项状态：pending(待处理)、in_progress(进行中)、completed(已完成)\"" +
                 "}" +
                 "}," +
-                "\"required\":[\"content\",\"status\"]" +
+                "\"required\":[\"id\",\"text\",\"status\"]" +
                 "}" +
                 "}" +
                 "}," +
@@ -142,19 +146,19 @@ public class ToolJson {
                 "}";
     }
 
-    // 获取skill工具的JSON定义
+    // ========== Skill 工具 ==========
     public static String getSkillTool() {
         return "{" +
                 "\"type\":\"function\"," +
                 "\"function\":{" +
                 "\"name\":\"skill\"," +
-                "\"description\":\"Load a skill and run it on the current conversation.\"," +
+                "\"description\":\"加载并运行指定技能到当前对话中\"," +
                 "\"parameters\":{" +
                 "\"type\":\"object\"," +
                 "\"properties\":{" +
                 "\"name\":{" +
                 "\"type\":\"string\"," +
-                "\"description\":\"The name of the skill to load.\"" +
+                "\"description\":\"要加载的技能名称\"" +
                 "}" +
                 "}," +
                 "\"required\":[\"name\"]" +
@@ -169,7 +173,7 @@ public class ToolJson {
                 "\"type\":\"function\"," +
                 "\"function\":{" +
                 "\"name\":\"task_create\"," +
-                "\"description\":\"创建新任务\"," +
+                "\"description\":\"创建新任务，所有任务的执行都必须通过任务管理器来管理\"," +
                 "\"parameters\":{" +
                 "\"type\":\"object\"," +
                 "\"properties\":{" +
@@ -186,14 +190,14 @@ public class ToolJson {
                 "\"items\":{" +
                 "\"type\":\"integer\"" +
                 "}," +
-                "\"description\":\"此任务依赖的任务ID列表，例如：[1, 2]表示依赖任务1和任务2\"" +
+                "\"description\":\"此任务依赖的任务ID列表，例如：1,2 表示依赖任务1和任务2\"" +
                 "}," +
                 "\"blocks\":{" +
                 "\"type\":\"array\"," +
                 "\"items\":{" +
                 "\"type\":\"integer\"" +
                 "}," +
-                "\"description\":\"依赖于此任务的任务ID列表，例如：[3, 4]表示任务3和任务4依赖于此任务\"" +
+                "\"description\":\"依赖于此任务的任务ID列表，例如：3,4 表示任务3和任务4依赖于此任务\"" +
                 "}" +
                 "}," +
                 "\"required\":[\"subject\"]" +
@@ -261,6 +265,90 @@ public class ToolJson {
                 "}";
     }
 
+    // ========== 后台任务工具 ==========
+    public static String getBackgroundTaskTool() {
+        return "{" +
+                "\"type\":\"function\"," +
+                "\"function\":{" +
+                "\"name\":\"run_background_task\"," +
+                "\"description\":\"在后台执行命令，适用于耗时操作\"," +
+                "\"parameters\":{" +
+                "\"type\":\"object\"," +
+                "\"properties\":{" +
+                "\"command\":{" +
+                "\"type\":\"string\"," +
+                "\"description\":\"要执行的命令，例如：ls -la、sleep 10、curl https://example.com\"" +
+                "}" +
+                "}," +
+                "\"required\":[\"command\"]" +
+                "}" +
+                "}" +
+                "}";
+    }
+
+    // ========== 团队管理工具 ==========
+    public static String getTeamTool() {
+        return "{" +
+                "\"type\":\"function\"," +
+                "\"function\":{" +
+                "\"name\":\"team\"," +
+                "\"description\":\"管理智能体团队，包括创建成员、发送消息等\"," +
+                "\"parameters\":{" +
+                "\"type\":\"object\"," +
+                "\"properties\":{" +
+                "\"action\":{" +
+                "\"type\":\"string\"," +
+                "\"enum\":[\"spawn\",\"send\",\"broadcast\",\"list\"]," +
+                "\"description\":\"操作类型：spawn（创建成员）、send（发送消息）、broadcast（广播消息）、list（列出成员）\"" +
+                "}," +
+                "\"name\":{" +
+                "\"type\":\"string\"," +
+                "\"description\":\"智能体名称，spawn时需要\"" +
+                "}," +
+                "\"instructions\":{" +
+                "\"type\":\"string\"," +
+                "\"description\":\"智能体指令，spawn操作时需要\"" +
+                "}," +
+                "\"sender\":{" +
+                "\"type\":\"string\"," +
+                "\"description\":\"消息发送者，send和broadcast操作时需要\"" +
+                "}," +
+                "\"receiver\":{" +
+                "\"type\":\"string\"," +
+                "\"description\":\"消息接收者，send操作时需要\"" +
+                "}," +
+                "\"content\":{" +
+                "\"type\":\"string\"," +
+                "\"description\":\"消息内容，send和broadcast操作时需要\"" +
+                "}" +
+                "}," +
+                "\"required\":[\"action\"]" +
+                "}" +
+                "}" +
+                "}";
+    }
+
+    // ========== 子智能体工具 ==========
+    public static String getTaskTool() {
+        return "{" +
+                "\"type\":\"function\"," +
+                "\"function\":{" +
+                "\"name\":\"task\"," +
+                "\"description\":\"创建具有全新上下文的子智能体并执行任务\"," +
+                "\"parameters\":{" +
+                "\"type\":\"object\"," +
+                "\"properties\":{" +
+                "\"prompt\":{" +
+                "\"type\":\"string\"," +
+                "\"description\":\"子智能体的执行指令/提示词\"" +
+                "}" +
+                "}," +
+                "\"required\":[\"prompt\"]" +
+                "}" +
+                "}" +
+                "}";
+    }
+
     // ========== 批量获取工具 ==========
     /**
      * 获取所有系统工具的JSON定义列表
@@ -273,10 +361,14 @@ public class ToolJson {
                 getWriteTool(),
                 getEditTool(),
                 getTodoTool(),
+                getSkillTool(),  // 新增：补充遗漏的Skill工具
                 getTaskCreateTool(),
                 getTaskUpdateTool(),
                 getTaskListTool(),
-                getTaskGetTool()
+                getTaskGetTool(),
+                getBackgroundTaskTool(),
+                getTeamTool(),
+                getTaskTool()    // 新增：补充遗漏的子智能体工具
         );
     }
 
@@ -304,6 +396,9 @@ public class ToolJson {
                 case "todo":
                     selected.add(getTodoTool());
                     break;
+                case "skill":
+                    selected.add(getSkillTool());
+                    break;
                 case "task_create":
                     selected.add(getTaskCreateTool());
                     break;
@@ -316,10 +411,43 @@ public class ToolJson {
                 case "task_get":
                     selected.add(getTaskGetTool());
                     break;
+                case "background_task":
+                    selected.add(getBackgroundTaskTool());
+                    break;
+                case "team":
+                    selected.add(getTeamTool());
+                    break;
+                case "subagent":  // 新增：子智能体工具别名
+                case "task":
+                    selected.add(getTaskTool());
+                    break;
                 default:
                     System.out.println("未知工具名：" + name);
             }
         }
         return selected;
+    }
+
+    /**
+     * 验证所有工具的JSON格式是否合法（调试用）
+     * @return 所有工具是否都合法
+     */
+    public static boolean validateAllTools() {
+        com.google.gson.Gson gson = new com.google.gson.Gson();
+        List<String> allTools = getAllSystemTools();
+        boolean allValid = true;
+
+        for (int i = 0; i < allTools.size(); i++) {
+            String toolJson = allTools.get(i);
+            String toolName = "工具" + (i+1);
+            gson.fromJson(toolJson, com.google.gson.JsonObject.class);
+            System.out.println(toolName + " - JSON格式合法");
+        }
+        return allValid;
+    }
+
+    // 测试方法：验证所有工具的JSON格式
+    public static void main(String[] args) {
+        validateAllTools();
     }
 }
